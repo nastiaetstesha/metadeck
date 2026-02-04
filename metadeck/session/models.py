@@ -1,7 +1,13 @@
+# metadeck/session/models.py
+import secrets
 import uuid
 from django.db import models
 
 from cards.models import Deck, Card
+
+
+def generate_token():
+    return secrets.token_urlsafe(24)
 
 
 class SessionMode(models.TextChoices):
@@ -19,7 +25,8 @@ class Session(models.Model):
 
     deck = models.ForeignKey(Deck, on_delete=models.PROTECT, related_name="sessions")
     mode = models.CharField(max_length=32, choices=SessionMode.choices)
-
+    # host_key = models.CharField(max_length=64, default=generate_token, editable=False)
+    client_key = models.CharField(max_length=64, default=generate_token, editable=False)
     title = models.CharField(max_length=120, blank=True)
     is_active = models.BooleanField(default=True)
 
@@ -29,7 +36,7 @@ class Session(models.Model):
         ordering = ["-created_at"]
 
     def __str__(self):
-        return f"{self.deck.title} | {self.mode} | {self.id}"
+        return f"{self.deck_id} | {self.mode} | {self.id}"
 
 
 class SessionEventType(models.TextChoices):

@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}MetaDeck{% endblock %}
+
+{% block content %}
+  <h1>MetaDeck</h1>
+  <p class="muted">Choose a deck</p>
+
+  <div class="card-grid">
+    {% for deck in decks %}
+      <a href="{% url 'cards:deck_modes' deck.id %}" style="text-decoration:none; color:inherit;">
+        <div class="flip-wrap">
+          <div class="flip-card is-flipped">
+            <div class="flip-face flip-front">
+              {% if deck.back_full %}
+                <img src="{{ deck.back_full.url }}" alt="deck back">
+              {% else %}
+                <div class="muted">No back image</div>
+              {% endif %}
+            </div>
+            <div class="flip-face flip-back">
+              {% if deck.back_full %}
+                <img src="{{ deck.back_full.url }}" alt="deck back">
+              {% else %}
+                <div class="muted">No back image</div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-top:10px; font-weight:600; text-align:center;">
+          {{ deck.title }}
+        </div>
+      </a>
+    {% empty %}
+      <div class="panel">No decks. Create one in <a href="/admin/" style="color:#66fcf1;">Admin</a>.</div>
+    {% endfor %}
+  </div>
+{% endblock %}

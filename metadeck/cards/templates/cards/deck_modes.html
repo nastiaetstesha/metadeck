@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Choose mode{% endblock %}
+
+{% block content %}
+  <div class="row" style="justify-content: space-between;">
+    <div>
+      <h1>Choose mode</h1>
+      <div class="muted">Deck name is hidden inside the session</div>
+    </div>
+    <a class="btn" href="{% url 'cards:home' %}">← Back</a>
+  </div>
+
+  <div style="margin-top: 18px;" class="panel">
+    <div class="row" style="align-items:flex-start;">
+      <div style="width:220px;">
+        <div class="flip-wrap">
+          <div class="flip-card is-flipped">
+            <div class="flip-face flip-front">
+              {% if deck.back_full %}
+                <img src="{{ deck.back_full.url }}" alt="deck back">
+              {% else %}
+                <div class="muted">No back image</div>
+              {% endif %}
+            </div>
+            <div class="flip-face flip-back">
+              {% if deck.back_full %}
+                <img src="{{ deck.back_full.url }}" alt="deck back">
+              {% else %}
+                <div class="muted">No back image</div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="flex:1;">
+        <form action="{% url 'session:create' %}" method="post" class="row">
+          {% csrf_token %}
+          <input type="hidden" name="deck_id" value="{{ deck.id }}">
+
+          <select name="mode" class="btn" required>
+            {% for value,label in modes %}
+              <option value="{{ value }}">{{ label }}</option>
+            {% endfor %}
+          </select>
+
+          <button class="btn" type="submit">Start session</button>
+        </form>
+
+        <p class="muted" style="margin-top:12px;">
+          After you start, you’ll get a client link to share. The client won’t see deck name.
+        </p>
+      </div>
+    </div>
+  </div>
+{% endblock %}

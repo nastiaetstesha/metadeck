@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}Session{% endblock %}
+
+{% block content %}
+  <div class="row" style="justify-content: space-between;">
+    <div>
+      <h1>Session</h1>
+      <div class="muted">Mode: {{ session.get_mode_display }}</div>
+      <!-- Название колоды НЕ показываем вообще -->
+    </div>
+    <a class="btn" href="{% url 'cards:home' %}">Home</a>
+  </div>
+
+  {% if not is_client %}
+    <div class="panel" style="margin-top: 14px;">
+      <div style="font-weight:600; margin-bottom:8px;">Share with client</div>
+      <div class="muted" style="word-break: break-all;">{{ client_link }}</div>
+      <div class="muted" style="margin-top:8px;">Host link: {{ host_link }}</div>
+    </div>
+  {% endif %}
+
+  <div class="row" style="margin-top: 16px;">
+    <form action="{% url 'session:draw_one' session.id %}" method="post">
+      {% csrf_token %}
+      <button class="btn" type="submit">Draw 1</button>
+    </form>
+
+    <form action="{% url 'session:draw_six' session.id %}" method="post">
+      {% csrf_token %}
+      <button class="btn" type="submit">Draw 6</button>
+    </form>
+  </div>
+
+  <div style="margin-top: 18px;" class="card-grid">
+    {% for c in drawn_cards %}
+      <div class="flip-wrap">
+        <div class="flip-card" data-flip>
+          <div class="flip-face flip-front">
+            {% if session.deck.back_full %}
+              <img src="{{ session.deck.back_full.url }}" alt="back"/>
+            {% else %}
+              <div class="muted">No back image</div>
+            {% endif %}
+          </div>
+          <div class="flip-face flip-back">
+            {% if c and c.image_full %}
+              <img src="{{ c.image_full.url }}" alt="card"/>
+            {% else %}
+              <div class="muted">No card image</div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    {% empty %}
+      <div class="panel">
+        <div class="muted">No cards yet. Click “Draw 1” or “Draw 6”.</div>
+      </div>
+    {% endfor %}
+  </div>
+{% endblock %}
