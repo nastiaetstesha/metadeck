@@ -24,7 +24,7 @@ CSRF_TRUSTED_ORIGINS = [
     "http://127.0.0.1:8001",
     "http://localhost:8001",
 ]
-ASGI_APPLICATION = "metadeck.asgi.application"
+
 
 CHANNEL_LAYERS = {
     "default": {
@@ -138,4 +138,4 @@ STATIC_URL = 'static/'
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 STATIC_ROOT = BASE_DIR / "staticfiles"
-
+ASGI_APPLICATION = "metadeck.asgi.application"

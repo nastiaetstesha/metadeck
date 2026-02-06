@@ -4,35 +4,51 @@
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>{% block title %}MetaDeck{% endblock %}</title>
-  <style>
-    body { font-family: system-ui, -apple-system, sans-serif; margin: 0; background: #0b0c10; color: #e8e8e8; }
-    .container { max-width: 1100px; margin: 0 auto; padding: 24px; }
-    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 18px; }
-    .btn { background: #1f2833; color: #e8e8e8; border: 1px solid #2c3a4a; padding: 10px 14px; border-radius: 12px; cursor: pointer; }
-    .btn:hover { border-color: #66fcf1; }
-    .panel { background: #111319; border: 1px solid #2c3a4a; border-radius: 16px; padding: 16px; }
 
-    /* FLIP CARD */
-    .flip-wrap { perspective: 1200px; }
-    .flip-card { width: 100%; aspect-ratio: 3/4; position: relative; transform-style: preserve-3d; transition: transform 600ms; border-radius: 18px; }
-    .flip-card.is-flipped { transform: rotateY(180deg); }
-    .flip-face {
-      position: absolute; inset: 0;
-      backface-visibility: hidden;
-      border-radius: 18px;
-      overflow: hidden;
-      border: 1px solid #2c3a4a;
-      background: #0f1116;
-      display: flex; align-items: center; justify-content: center;
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      margin: 0;
+      background: #0b0c10;
+      color: #e8e8e8;
     }
-    .flip-face img { width: 100%; height: 100%; object-fit: cover; display: block; }
-    .flip-back { transform: rotateY(180deg); }
+
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    .btn {
+      background: #1f2833;
+      color: #e8e8e8;
+      border: 1px solid #2c3a4a;
+      padding: 10px 14px;
+      border-radius: 12px;
+      cursor: pointer;
+    }
+    .btn:hover { border-color: #66fcf1; }
+
+    .panel {
+      background: #111319;
+      border: 1px solid #2c3a4a;
+      border-radius: 16px;
+      padding: 16px;
+    }
 
     .muted { color: #a0a0a0; font-size: 14px; }
-    .row { display:flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+
+    .row {
+      display:flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
     h1,h2 { margin: 0 0 12px 0; }
   </style>
 </head>
+
 <body>
   <div class="container">
     {% block content %}{% endblock %}

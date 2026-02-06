@@ -5,197 +5,325 @@
 
 {% block content %}
 <style>
-  .row {
-    display: flex;
-    gap: 12px;
-    align-items: center;
-    flex-wrap: wrap;
-  }
-  .muted { opacity: 0.8; }
-  .panel {
-    border: 1px solid rgba(255,255,255,0.12);
-    border-radius: 14px;
-    padding: 14px;
-    background: rgba(255,255,255,0.03);
-  }
-  .btn {
-    border: 1px solid rgba(255,255,255,0.18);
-    background: rgba(255,255,255,0.06);
-    color: inherit;
-    padding: 10px 14px;
-    border-radius: 12px;
-    cursor: pointer;
-    text-decoration: none;
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-  }
-  .btn:hover { background: rgba(255,255,255,0.09); }
-
-  .card-grid {
-    margin-top: 18px;
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
-    gap: 16px;
+  :root{
+    --bg:#0b0e12;
+    --panel:rgba(255,255,255,.06);
+    --border:rgba(255,255,255,.12);
+    --text:rgba(255,255,255,.92);
+    --muted:rgba(255,255,255,.62);
+    --shadow:0 18px 55px rgba(0,0,0,.45);
+    --r:16px;
   }
 
-  .flip-wrap {
-    width: 100%;
-    aspect-ratio: 3 / 4;
-    perspective: 1000px;
-  }
-  .flip-card {
-    width: 100%;
-    height: 100%;
-    position: relative;
-    transform-style: preserve-3d;
-    transition: transform 600ms ease;
-    border-radius: 16px;
-    overflow: hidden;
-    box-shadow: 0 12px 24px rgba(0,0,0,0.25);
-    border: 1px solid rgba(255,255,255,0.10);
-    background: rgba(0,0,0,0.15);
-    user-select: none;
-  }
-  .flip-card.is-flipped { transform: rotateY(180deg); }
+  .session-room { color: var(--text); padding: 6px 2px 20px; }
 
-  .flip-face {
-    position: absolute;
-    inset: 0;
-    backface-visibility: hidden;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
+  .topbar{
+    display:flex; align-items:flex-start; justify-content:space-between;
+    gap:16px; margin-bottom:18px;
+  }
+  .title h1{
+    margin:0; font-size:42px; line-height:1.05; letter-spacing:-0.02em;
+  }
+  .title .sub{ margin-top:6px; color:var(--muted); font-size:16px; }
+  .right{ display:flex; align-items:center; gap:10px; }
+
+  .pill{
+    padding:8px 12px; border-radius:999px;
+    border:1px solid var(--border);
+    background:rgba(255,255,255,.06);
+    font-size:14px; color:var(--muted);
   }
 
-  .flip-front { transform: rotateY(0deg); }
-  .flip-back { transform: rotateY(180deg); }
+  .btn{
+    appearance:none;
+    border:1px solid var(--border);
+    background:rgba(255,255,255,.06);
+    color:var(--text);
+    padding:10px 14px;
+    border-radius:12px;
+    cursor:pointer;
+    transition:.15s ease;
+    font-weight:600;
+  }
+  .btn:hover{ background:rgba(255,255,255,.09); }
+  .btn:active{ transform:translateY(1px); }
+  .btn-secondary{ color:var(--muted); font-weight:600; }
 
-  .flip-face img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
+  .panel{
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:var(--r);
+    box-shadow:var(--shadow);
+    padding:16px;
   }
 
-  .status-pill {
-    font-size: 12px;
-    padding: 6px 10px;
-    border-radius: 999px;
-    border: 1px solid rgba(255,255,255,0.15);
-    background: rgba(255,255,255,0.06);
+  .share h3{ margin:0 0 10px 0; font-size:18px; }
+  .share .link{
+    color:var(--muted);
+    word-break:break-all;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    font-size:13px;
+    margin:6px 0;
+  }
+  .hint{ color:var(--muted); font-size:13px; margin-top:10px; }
+
+  .controls{
+    display:flex; align-items:center; gap:10px;
+    margin:16px 0 18px;
+    flex-wrap:wrap;
+  }
+
+  .grid{
+    display:grid;
+    grid-template-columns: repeat(6, minmax(140px, 1fr));
+    gap:14px;
+    align-items:start;
+  }
+  @media (max-width:1100px){
+    .grid{ grid-template-columns: repeat(4, minmax(140px, 1fr)); }
+  }
+  @media (max-width:820px){
+    .grid{ grid-template-columns: repeat(2, minmax(140px, 1fr)); }
+    .title h1{ font-size:34px; }
+  }
+
+  /* Flip */
+.flip-wrap{
+  perspective: 1100px;
+}
+
+.flip-card{
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  position: relative;
+  border-radius: 18px;
+  transform-style: preserve-3d;
+  -webkit-transform-style: preserve-3d;
+  transition: transform .55s cubic-bezier(.2,.8,.2,1);
+  cursor: pointer;
+  box-shadow: 0 14px 45px rgba(0,0,0,.35);
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.04);
+  will-change: transform;
+  /* ВАЖНО: убираем overflow отсюда */
+  overflow: visible;
+}
+
+.flip-card.is-flipped{
+  transform: rotateY(180deg);
+}
+
+.flip-face{
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+
+  /* ВАЖНО: radius/overflow сюда */
+  border-radius: 18px;
+  overflow: hidden;
+
+  /* ВАЖНО: чуть "выталкиваем" слой вперёд, чтобы браузер не путал плоскости */
+  transform: translateZ(1px);
+}
+
+.flip-front{
+  transform: rotateY(0deg) translateZ(1px);
+}
+
+.flip-back{
+  transform: rotateY(180deg) translateZ(1px);
+}
+
+.flip-face img{
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-drag: none;
+
+  /* на всякий случай дублируем backface на img */
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+
+  .empty{
+    color:var(--muted);
+    padding:18px;
+    text-align:center;
+  }
+
+  .debug{
+    margin-top:8px;
+    font-size:12px;
+    color:rgba(255,255,255,.55);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    word-break: break-all;
   }
 </style>
 
-<div class="row" style="justify-content: space-between;">
-  <div>
-    <h1 style="margin:0;">Session</h1>
-    <div class="muted">Mode: {{ session.get_mode_display }}</div>
-    <!-- Название колоды НЕ показываем -->
+<div class="session-room">
+  <div class="topbar">
+    <div class="title">
+      <h1>Session</h1>
+      <div class="sub">Mode: {{ session.get_mode_display }}</div>
+    </div>
+
+    <div class="right">
+      <div id="wsStatus" class="pill">WS: connecting...</div>
+      <a class="btn btn-secondary" href="{% url 'cards:home' %}">Home</a>
+    </div>
   </div>
 
-  <div class="row">
-    <span id="wsStatus" class="status-pill">WS: connecting…</span>
-    <a class="btn" href="{% url 'cards:home' %}">Home</a>
+  {% if not is_client %}
+    <div class="panel share" style="margin-bottom: 14px;">
+      <h3>Share with client</h3>
+      <div class="link">{{ client_link }}</div>
+      <div class="link">Host link: {{ host_link }}</div>
+      <div class="hint">Client won’t see deck title (you can keep it only on the deck selection screen).</div>
+    </div>
+  {% endif %}
+
+  <div class="controls">
+    <button class="btn" id="btnDraw1" type="button">Draw 1</button>
+    <button class="btn" id="btnDraw6" type="button">Draw 6</button>
+    <button class="btn btn-secondary" id="btnReset" type="button">Reset</button>
   </div>
-</div>
 
-{% if not is_client %}
-  <div class="panel" style="margin-top: 14px;">
-    <div style="font-weight:600; margin-bottom:8px;">Share with client</div>
-    <div class="muted" style="word-break: break-all;">{{ client_link }}</div>
-    <div class="muted" style="margin-top:8px; word-break: break-all;">Host link: {{ host_link }}</div>
-  </div>
-{% endif %}
+  <div id="cardsGrid" class="grid">
+    {% if drawn_cards %}
+      {% for card in drawn_cards %}
+        <div class="flip-wrap">
+          <div class="flip-card" data-flip>
+            <div class="flip-face flip-front">
+              {% if session.deck.back_full %}
+                <img src="{{ session.deck.back_full.url }}" alt="back">
+              {% else %}
+                <div class="empty">No back image</div>
+              {% endif %}
+            </div>
 
-<div class="row" style="margin-top: 16px;">
-  <button class="btn" type="button" onclick="drawOne()">Draw 1</button>
-  <button class="btn" type="button" onclick="drawSix()">Draw 6</button>
-  <span class="muted" id="hint"></span>
-</div>
-
-<div class="card-grid" id="cardsGrid">
-  {% for c in drawn_cards %}
-    <div class="flip-wrap">
-      <div class="flip-card" data-flip>
-        <div class="flip-face flip-front">
-          {% if session.deck.back_full %}
-            <img src="{{ session.deck.back_full.url }}" alt="back"/>
-          {% else %}
-            <div class="muted">No back image</div>
-          {% endif %}
+            <div class="flip-face flip-back">
+              {% if card.image_full %}
+                <img src="{{ card.image_full.url }}" alt="card">
+              {% else %}
+                <div class="empty">No card image</div>
+              {% endif %}
+            </div>
+          </div>
         </div>
-        <div class="flip-face flip-back">
-          {% if c and c.image_full %}
-            <img src="{{ c.image_full.url }}" alt="card"/>
-          {% else %}
-            <div class="muted">No card image</div>
-          {% endif %}
-        </div>
+      {% endfor %}
+    {% else %}
+      <div class="panel empty" style="grid-column: 1 / -1;">
+        No cards yet. Click “Draw 1” or “Draw 6”.
       </div>
-    </div>
-  {% empty %}
-    <div class="panel">
-      <div class="muted">No cards yet. Click “Draw 1” or “Draw 6”.</div>
-    </div>
-  {% endfor %}
+    {% endif %}
+  </div>
+
+  <div class="hint" style="margin-top: 14px;">
+    Tip: click a card to flip it. (Flip is local for now; we can sync it later as an event.)
+    <br>
+    Debug: add <code>?debug=1</code> to the URL to see back/front URLs under each card.
+  </div>
 </div>
 
 <script>
-  // Flip on click
-  document.addEventListener("click", (e) => {
-    const card = e.target.closest("[data-flip]");
-    if (!card) return;
-    card.classList.toggle("is-flipped");
-  });
-
+(function () {
   const wsStatus = document.getElementById("wsStatus");
-  const hint = document.getElementById("hint");
+  const grid = document.getElementById("cardsGrid");
+
+  const btnDraw1 = document.getElementById("btnDraw1");
+  const btnDraw6 = document.getElementById("btnDraw6");
+  const btnReset = document.getElementById("btnReset");
+
   const sessionId = "{{ session.id }}";
+  const scheme = (window.location.protocol === "https:") ? "wss" : "ws";
+  const wsUrl = `${scheme}://${window.location.host}/ws/s/${sessionId}/`;
 
-  // WebSocket URL (ws / wss)
-  const wsProtocol = (window.location.protocol === "https:") ? "wss" : "ws";
-  const wsUrl = `${wsProtocol}://${window.location.host}/ws/s/${sessionId}/`;
-  const ws = new WebSocket(wsUrl);
+  const debug = new URLSearchParams(window.location.search).get("debug") === "1";
 
-  ws.onopen = () => {
-    wsStatus.textContent = "WS: connected";
-    hint.textContent = "";
-  };
+  let ws = null;
+  let reconnectTimer = null;
 
-  ws.onclose = () => {
-    wsStatus.textContent = "WS: disconnected";
-    hint.textContent = "Connection lost. Reload the page.";
-  };
-
-  ws.onerror = () => {
-    wsStatus.textContent = "WS: error";
-  };
-
-  ws.onmessage = (event) => {
-    const data = JSON.parse(event.data);
-
-    // MVP: если пришёл новый state — перезагрузимся, чтобы увидеть те же карты
-    if (data.type === "state") {
-      window.location.reload();
-    }
-  };
-
-  function drawOne() {
-    if (ws.readyState !== WebSocket.OPEN) {
-      hint.textContent = "WebSocket is not connected yet.";
-      return;
-    }
-    ws.send(JSON.stringify({ action: "draw_one" }));
+  function setWsStatus(text, ok) {
+    wsStatus.textContent = text;
+    wsStatus.style.color = ok ? "rgba(255,255,255,.82)" : "rgba(255,255,255,.62)";
   }
 
-  function drawSix() {
-    if (ws.readyState !== WebSocket.OPEN) {
-      hint.textContent = "WebSocket is not connected yet.";
+  function connect() {
+    if (reconnectTimer) clearTimeout(reconnectTimer);
+    setWsStatus("WS: connecting...", false);
+
+    ws = new WebSocket(wsUrl);
+
+    ws.onopen = () => setWsStatus("WS: connected", true);
+
+    ws.onclose = () => {
+      setWsStatus("WS: disconnected", false);
+      reconnectTimer = setTimeout(connect, 700);
+    };
+
+    ws.onerror = () => setWsStatus("WS: error", false);
+
+    ws.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      if (data.type === "state") {
+        renderCards(data.cards || []);
+      }
+    };
+  }
+
+  function send(action) {
+    if (!ws || ws.readyState !== WebSocket.OPEN) return;
+    ws.send(JSON.stringify({ action }));
+  }
+
+  function esc(s) {
+    return String(s || "")
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;");
+  }
+
+  function renderCards(cards) {
+    if (!cards.length) {
+      grid.innerHTML = `
+        <div class="panel empty" style="grid-column: 1 / -1;">
+          No cards yet. Click “Draw 1” or “Draw 6”.
+        </div>
+      `;
       return;
     }
-    ws.send(JSON.stringify({ action: "draw_six" }));
+
+    grid.innerHTML = cards.map((c) => `
+      <div class="flip-wrap">
+        <div class="flip-card" data-flip data-card-id="${esc(c.id)}" data-back="${esc(c.back_url)}" data-front="${esc(c.front_url)}">
+          <div class="flip-face flip-front">
+            ${c.back_url ? `<img src="${esc(c.back_url)}" alt="back">` : `<div class="empty">No back image</div>`}
+          </div>
+          <div class="flip-face flip-back">
+            ${c.front_url ? `<img src="${esc(c.front_url)}" alt="card">` : `<div class="empty">No card image</div>`}
+          </div>
+        </div>
+        ${debug ? `
+          <div class="debug">back: ${esc(c.back_url)}<br>front: ${esc(c.front_url)}</div>
+        ` : ``}
+      </div>
+    `).join("");
   }
+
+  btnDraw1?.addEventListener("click", () => send("draw_one"));
+  btnDraw6?.addEventListener("click", () => send("draw_six"));
+  btnReset?.addEventListener("click", () => send("reset"));
+
+  connect();
+})();
 </script>
 {% endblock %}
