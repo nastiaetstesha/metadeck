@@ -3,160 +3,12 @@
 
 {% block title %}Session{% endblock %}
 
+{% block extra_css %}
+  <link rel="stylesheet" href="{% static 'session/css/room.css' %}">
+{% endblock %}
+
 {% block content %}
-<style>
-  :root{
-    --bg:#0b0e12;
-    --panel:rgba(255,255,255,.06);
-    --border:rgba(255,255,255,.12);
-    --text:rgba(255,255,255,.92);
-    --muted:rgba(255,255,255,.62);
-    --shadow:0 18px 55px rgba(0,0,0,.45);
-    --r:16px;
-  }
-
-  .session-room { color: var(--text); padding: 6px 2px 20px; }
-
-  .topbar{
-    display:flex; align-items:flex-start; justify-content:space-between;
-    gap:16px; margin-bottom:18px;
-  }
-  .title h1{
-    margin:0; font-size:42px; line-height:1.05; letter-spacing:-0.02em;
-  }
-  .title .sub{ margin-top:6px; color:var(--muted); font-size:16px; }
-  .right{ display:flex; align-items:center; gap:10px; }
-
-  .pill{
-    padding:8px 12px; border-radius:999px;
-    border:1px solid var(--border);
-    background:rgba(255,255,255,.06);
-    font-size:14px; color:var(--muted);
-  }
-
-  .btn{
-    appearance:none;
-    border:1px solid var(--border);
-    background:rgba(255,255,255,.06);
-    color:var(--text);
-    padding:10px 14px;
-    border-radius:12px;
-    cursor:pointer;
-    transition:.15s ease;
-    font-weight:600;
-  }
-  .btn:hover{ background:rgba(255,255,255,.09); }
-  .btn:active{ transform:translateY(1px); }
-  .btn-secondary{ color:var(--muted); font-weight:600; }
-
-  .panel{
-    background:var(--panel);
-    border:1px solid var(--border);
-    border-radius:var(--r);
-    box-shadow:var(--shadow);
-    padding:16px;
-  }
-
-  .share h3{ margin:0 0 10px 0; font-size:18px; }
-  .share .link{
-    color:var(--muted);
-    word-break:break-all;
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
-    font-size:13px;
-    margin:6px 0;
-  }
-  .hint{ color:var(--muted); font-size:13px; margin-top:10px; }
-
-  .controls{
-    display:flex; align-items:center; gap:10px;
-    margin:16px 0 18px;
-    flex-wrap:wrap;
-  }
-
-  .grid{
-    display:grid;
-    grid-template-columns: repeat(6, minmax(140px, 1fr));
-    gap:14px;
-    align-items:start;
-  }
-  @media (max-width:1100px){
-    .grid{ grid-template-columns: repeat(4, minmax(140px, 1fr)); }
-  }
-  @media (max-width:820px){
-    .grid{ grid-template-columns: repeat(2, minmax(140px, 1fr)); }
-    .title h1{ font-size:34px; }
-  }
-
-  /* Flip (только тут, НЕ в base.html) */
-  .flip-wrap{ perspective: 1100px; }
-
-  .flip-card{
-    width: 100%;
-    aspect-ratio: 3 / 4;
-    position: relative;
-    border-radius: 18px;
-    transform-style: preserve-3d;
-    -webkit-transform-style: preserve-3d;
-    transition: transform .55s cubic-bezier(.2,.8,.2,1);
-    cursor: pointer;
-    box-shadow: 0 14px 45px rgba(0,0,0,.35);
-    border: 1px solid rgba(255,255,255,.12);
-    background: rgba(255,255,255,.04);
-    will-change: transform;
-    overflow: visible;
-  }
-
-  .flip-card.is-flipped{
-    transform: rotateY(180deg);
-  }
-
-  .flip-face{
-    position: absolute;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    backface-visibility: hidden;
-    -webkit-backface-visibility: hidden;
-
-    border-radius: 18px;
-    overflow: hidden;
-
-    transform: translateZ(1px);
-  }
-
-  .flip-front{ transform: rotateY(0deg) translateZ(1px); }
-  .flip-back{  transform: rotateY(180deg) translateZ(1px); }
-
-  .flip-face img{
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
-    pointer-events: none;
-    user-select: none;
-    -webkit-user-drag: none;
-    backface-visibility: hidden;
-    -webkit-backface-visibility: hidden;
-  }
-
-  .empty{
-    color:var(--muted);
-    padding:18px;
-    text-align:center;
-  }
-
-  .debug{
-    margin-top:8px;
-    font-size:12px;
-    color:rgba(255,255,255,.55);
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
-    word-break: break-all;
-  }
-</style>
-
-<div class="session-room">
+<div class="session-room" data-session-room>
   <div class="topbar">
     <div class="title">
       <h1>Session</h1>
@@ -170,7 +22,7 @@
   </div>
 
   {% if not is_client %}
-    <div class="panel share" style="margin-bottom: 14px;">
+    <div class="panel share">
       <h3>Share with client</h3>
       <div class="link">{{ client_link }}</div>
       <div class="link">Host link: {{ host_link }}</div>
@@ -184,11 +36,12 @@
     <button class="btn btn-secondary" id="btnReset" type="button">Reset</button>
   </div>
 
-  <div id="cardsGrid" class="grid">
+  <div id="cardsGrid" class="grid" aria-live="polite">
     {% if drawn_cards %}
+      {# серверный рендер оставляем как “первую картинку”, но дальше всё управляется JS #}
       {% for card in drawn_cards %}
         <div class="flip-wrap">
-          <div class="flip-card" data-flip data-card-id="{{ card.id }}">
+          <div class="flip-card" data-flip>
             <div class="flip-face flip-front">
               {% if session.deck.back_full %}
                 <img src="{{ session.deck.back_full.url }}" alt="back">
@@ -204,153 +57,47 @@
                 <div class="empty">No card image</div>
               {% endif %}
             </div>
+
+            <button class="zoom-btn" type="button" data-zoom title="Zoom">+</button>
           </div>
         </div>
       {% endfor %}
     {% else %}
-      <div class="panel empty" style="grid-column: 1 / -1;">
+      <div class="panel empty wide">
         No cards yet. Click “Draw 1” or “Draw 6”.
       </div>
     {% endif %}
   </div>
 
-  <div class="hint" style="margin-top: 14px;">
+  <div class="hint below">
     Tip: click a card to flip it. (Flip is synced via WS now.)
     <br>
     Debug: add <code>?debug=1</code> to the URL to see back/front URLs under each card.
   </div>
+
+  <!-- Zoom modal -->
+  <div class="modal" id="zoomModal" aria-hidden="true">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-label="Card preview">
+      <div class="modal-toolbar">
+        <div class="modal-title">Preview</div>
+        <div class="modal-actions">
+          <button class="icon-btn" type="button" id="zoomOutBtn" title="Zoom out">−</button>
+          <button class="icon-btn" type="button" id="zoomInBtn" title="Zoom in">+</button>
+          <button class="icon-btn" type="button" id="zoomCloseBtn" title="Close">×</button>
+        </div>
+      </div>
+      <div class="modal-body">
+        <img id="zoomImg" alt="zoomed card">
+      </div>
+    </div>
+  </div>
 </div>
+{% endblock %}
 
+{% block extra_js %}
 <script>
-(function () {
-  const wsStatus = document.getElementById("wsStatus");
-  const grid = document.getElementById("cardsGrid");
-
-  const btnDraw1 = document.getElementById("btnDraw1");
-  const btnDraw6 = document.getElementById("btnDraw6");
-  const btnReset = document.getElementById("btnReset");
-
-  const sessionId = "{{ session.id }}";
-  const scheme = (window.location.protocol === "https:") ? "wss" : "ws";
-  const wsUrl = `${scheme}://${window.location.host}/ws/s/${sessionId}/`;
-
-  const debug = new URLSearchParams(window.location.search).get("debug") === "1";
-
-  let ws = null;
-  let reconnectTimer = null;
-
-  function setWsStatus(text, ok) {
-    wsStatus.textContent = text;
-    wsStatus.style.color = ok ? "rgba(255,255,255,.82)" : "rgba(255,255,255,.62)";
-  }
-
-  function esc(s) {
-    return String(s || "")
-      .replaceAll("&", "&amp;")
-      .replaceAll("<", "&lt;")
-      .replaceAll(">", "&gt;");
-  }
-
-  function sendJson(payload) {
-    if (!ws || ws.readyState !== WebSocket.OPEN) return;
-    ws.send(JSON.stringify(payload));
-  }
-
-  function sendAction(action) {
-    sendJson({ action });
-  }
-
-  function setCardFlipped(cardId, flipped) {
-    const selector = `.flip-card[data-card-id="${CSS.escape(String(cardId))}"]`;
-    const el = grid.querySelector(selector);
-    if (!el) return;
-    el.classList.toggle("is-flipped", !!flipped);
-  }
-
-  function renderCards(cards, flips = {}) {
-    if (!cards.length) {
-      grid.innerHTML = `
-        <div class="panel empty" style="grid-column: 1 / -1;">
-          No cards yet. Click “Draw 1” or “Draw 6”.
-        </div>
-      `;
-      return;
-    }
-
-    grid.innerHTML = cards.map((c) => {
-      const flipped = !!flips[String(c.id)];
-      return `
-        <div class="flip-wrap">
-          <div class="flip-card ${flipped ? "is-flipped" : ""}"
-               data-flip
-               data-card-id="${esc(c.id)}"
-               data-back="${esc(c.back_url)}"
-               data-front="${esc(c.front_url)}">
-            <div class="flip-face flip-front">
-              ${c.back_url ? `<img src="${esc(c.back_url)}" alt="back">` : `<div class="empty">No back image</div>`}
-            </div>
-            <div class="flip-face flip-back">
-              ${c.front_url ? `<img src="${esc(c.front_url)}" alt="card">` : `<div class="empty">No card image</div>`}
-            </div>
-          </div>
-          ${debug ? `
-            <div class="debug">back: ${esc(c.back_url)}<br>front: ${esc(c.front_url)}</div>
-          ` : ``}
-        </div>
-      `;
-    }).join("");
-  }
-
-  function connect() {
-    if (reconnectTimer) clearTimeout(reconnectTimer);
-    setWsStatus("WS: connecting...", false);
-
-    ws = new WebSocket(wsUrl);
-
-    ws.onopen = () => setWsStatus("WS: connected", true);
-
-    ws.onclose = () => {
-      setWsStatus("WS: disconnected", false);
-      reconnectTimer = setTimeout(connect, 700);
-    };
-
-    ws.onerror = () => setWsStatus("WS: error", false);
-
-    ws.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-
-      if (data.type === "state") {
-        renderCards(data.cards || [], data.flips || {});
-        return;
-      }
-
-      if (data.type === "flip") {
-        setCardFlipped(data.card_id, data.flipped);
-        return;
-      }
-    };
-  }
-
-  // --- actions ---
-  btnDraw1?.addEventListener("click", () => sendAction("draw_one"));
-  btnDraw6?.addEventListener("click", () => sendAction("draw_six"));
-  btnReset?.addEventListener("click", () => sendAction("reset"));
-
-  // --- flip click (SYNC) ---
-  document.addEventListener("click", (e) => {
-    const el = e.target.closest(".flip-card[data-card-id]");
-    if (!el) return;
-
-    // toggling locally for instant feedback
-    const cardId = el.dataset.cardId;
-    const flipped = !el.classList.contains("is-flipped");
-    el.classList.toggle("is-flipped", flipped);
-
-    // send to server
-    sendJson({ action: "flip", card_id: cardId, flipped });
-  });
-
-  connect();
-})();
+  window.__SESSION_ID__ = "{{ session.id }}";
+  window.__DEBUG__ = {% if request.GET.debug == "1" %}true{% else %}false{% endif %};
 </script>
+<script defer src="{% static 'session/js/room.js' %}"></script>
 {% endblock %}

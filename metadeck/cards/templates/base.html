@@ -1,3 +1,4 @@
+<!-- metadeck/templates/base.html (или где он у тебя лежит) -->
 <!doctype html>
 <html lang="en">
 <head>
@@ -12,41 +13,14 @@
       background: #0b0c10;
       color: #e8e8e8;
     }
-
     .container {
       max-width: 1100px;
       margin: 0 auto;
       padding: 24px;
     }
-
-    .btn {
-      background: #1f2833;
-      color: #e8e8e8;
-      border: 1px solid #2c3a4a;
-      padding: 10px 14px;
-      border-radius: 12px;
-      cursor: pointer;
-    }
-    .btn:hover { border-color: #66fcf1; }
-
-    .panel {
-      background: #111319;
-      border: 1px solid #2c3a4a;
-      border-radius: 16px;
-      padding: 16px;
-    }
-
-    .muted { color: #a0a0a0; font-size: 14px; }
-
-    .row {
-      display:flex;
-      gap: 12px;
-      flex-wrap: wrap;
-      align-items: center;
-    }
-
-    h1,h2 { margin: 0 0 12px 0; }
   </style>
+
+  {% block extra_css %}{% endblock %}
 </head>
 
 <body>
@@ -54,13 +28,6 @@
     {% block content %}{% endblock %}
   </div>
 
-  <script>
-    // кликаешь по карте — она переворачивается
-    document.addEventListener("click", (e) => {
-      const el = e.target.closest("[data-flip]");
-      if (!el) return;
-      el.classList.toggle("is-flipped");
-    });
-  </script>
+  {% block extra_js %}{% endblock %}
 </body>
 </html>

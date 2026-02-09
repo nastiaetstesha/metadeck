@@ -19,7 +19,7 @@ class SessionConsumer(AsyncWebsocketConsumer):
     """
     WebSocket consumer for a session room.
 
-    - Lazy model loading via apps.get_model (prevents "apps aren't loaded yet" at import time)
+    - Lazy model loading via apps.get_model
     - DB calls wrapped with sync_to_async
     - Broadcasts full "state" payload after each action
     - Syncs flip state:
@@ -41,12 +41,12 @@ class SessionConsumer(AsyncWebsocketConsumer):
     def _Card():
         return apps.get_model("cards", "Card")
 
-    # ---------- cache helpers ----------
+    # ---------- cache helpers (sync is ok here) ----------
     def get_flips(self) -> dict:
-        return cache.get(flips_cache_key(self.session_id), {}) or {}
+        return cache.get(flips_cache_key(str(self.session_id)), {}) or {}
 
     def set_flips(self, flips: dict) -> None:
-        cache.set(flips_cache_key(self.session_id), flips or {}, CACHE_TTL_SECONDS)
+        cache.set(flips_cache_key(str(self.session_id)), flips or {}, CACHE_TTL_SECONDS)
 
     def set_flip(self, card_id: str, flipped: bool) -> dict:
         flips = self.get_flips()
@@ -58,13 +58,8 @@ class SessionConsumer(AsyncWebsocketConsumer):
         self.set_flips({})
 
     def prune_flips(self, allowed_ids: list[str]) -> dict:
-        """
-        Оставляем flip-состояния только для текущих drawn_ids.
-        Для новых id добавляем False.
-        """
         allowed = {str(x) for x in (allowed_ids or [])}
         current = self.get_flips()
-
         pruned = {cid: bool(current.get(cid, False)) for cid in allowed}
         self.set_flips(pruned)
         return pruned
@@ -76,7 +71,6 @@ class SessionConsumer(AsyncWebsocketConsumer):
         await self.channel_layer.group_add(self.group_name, self.channel_name)
         await self.accept()
 
-        # send current state to this client
         payload = await self.build_state_payload()
         await self.send_json(payload)
 
@@ -89,34 +83,47 @@ class SessionConsumer(AsyncWebsocketConsumer):
 
         if action == "draw_one":
             await self.draw_and_broadcast(count=1)
-        elif action == "draw_six":
+            return
+
+        if action == "draw_six":
             await self.draw_and_broadcast(count=6)
-        elif action == "reset":
+            return
+
+        if action == "reset":
             await self.reset_and_broadcast()
-        elif action == "flip":
+            return
+
+        if action == "flip":
             card_id = data.get("card_id")
             flipped = data.get("flipped")
             if card_id is None or flipped is None:
                 return
 
-            # сохраняем состояние переворота
-            self.set_flip(str(card_id), bool(flipped))
+            card_id = str(card_id)
+            flipped = bool(flipped)
 
-            # рассылаем всем участникам flip-событие
+            # ✅ ВАЖНО: flip разрешаем только для текущих drawn_ids
+            drawn_ids = await self.get_current_drawn_ids()
+            if card_id not in set(map(str, drawn_ids)):
+                return
+
+            self.set_flip(card_id, flipped)
+
             await self.channel_layer.group_send(
                 self.group_name,
                 {
                     "type": "flip.message",
-                    "card_id": str(card_id),
-                    "flipped": bool(flipped),
+                    "card_id": card_id,
+                    "flipped": flipped,
                 },
             )
+            return
 
     async def draw_and_broadcast(self, count: int):
         drawn_ids = await self.draw_cards(count=count)
         await self.save_draw_event(drawn_ids)
 
-        # flips: очищаем/обрезаем под новую раздачу, чтобы не тянуть старые
+        # ✅ очищаем/обрезаем flips под новую раздачу
         self.prune_flips(drawn_ids)
 
         payload = await self.build_state_payload()
@@ -127,8 +134,6 @@ class SessionConsumer(AsyncWebsocketConsumer):
 
     async def reset_and_broadcast(self):
         await self.save_draw_event([])
-
-        # при reset сбрасываем flips
         self.clear_flips()
 
         payload = await self.build_state_payload()
@@ -141,7 +146,6 @@ class SessionConsumer(AsyncWebsocketConsumer):
         await self.send_json(event["payload"])
 
     async def flip_message(self, event):
-        # точечное событие (без полного ререндера)
         await self.send_json(
             {
                 "type": "flip",
@@ -180,13 +184,21 @@ class SessionConsumer(AsyncWebsocketConsumer):
         )
 
     @sync_to_async
+    def get_current_drawn_ids(self) -> list[str]:
+        """Нужен для валидации flip (flip только по текущим картам)."""
+        Session = self._Session()
+        SessionEvent = self._SessionEvent()
+
+        session = Session.objects.get(id=self.session_id)
+        last = (
+            SessionEvent.objects.filter(session=session, event_type="draw")
+            .order_by("-created_at")
+            .first()
+        )
+        return (last.payload.get("drawn_ids", []) if last else [])
+
+    @sync_to_async
     def build_state_payload(self):
-        """
-        Full state for rendering:
-        - ordered drawn_ids from last "draw" event
-        - urls for fronts + back (deck back)
-        - flips from cache (so reconnect/new join sees correct side)
-        """
         Session = self._Session()
         SessionEvent = self._SessionEvent()
         Card = self._Card()
@@ -213,7 +225,7 @@ class SessionConsumer(AsyncWebsocketConsumer):
 
         items = []
         for cid in drawn_ids:
-            c = cards_map.get(cid)
+            c = cards_map.get(str(cid))
             if not c:
                 continue
 
@@ -226,20 +238,21 @@ class SessionConsumer(AsyncWebsocketConsumer):
 
             items.append(
                 {
-                    "id": cid,
+                    "id": str(cid),
                     "front_url": front_url,
                     "back_url": back_url,
                 }
             )
 
+        # ✅ flips: берём из cache, режем по drawn_ids и ПИШЕМ ОБРАТНО (чтобы cache не разрастался)
         flips = cache.get(flips_cache_key(str(self.session_id)), {}) or {}
-        # на всякий случай: оставим flips только для текущих drawn_ids
         allowed = {str(x) for x in drawn_ids}
-        flips = {cid: bool(flips.get(cid, False)) for cid in allowed}
+        flips_pruned = {cid: bool(flips.get(cid, False)) for cid in allowed}
+        cache.set(flips_cache_key(str(self.session_id)), flips_pruned, CACHE_TTL_SECONDS)
 
         return {
             "type": "state",
             "mode": session.mode,
             "cards": items,
-            "flips": flips,
+            "flips": flips_pruned,
         }
