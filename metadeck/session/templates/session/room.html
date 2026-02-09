@@ -87,72 +87,59 @@
     .title h1{ font-size:34px; }
   }
 
-  /* Flip */
-.flip-wrap{
-  perspective: 1100px;
-}
+  /* Flip (только тут, НЕ в base.html) */
+  .flip-wrap{ perspective: 1100px; }
 
-.flip-card{
-  width: 100%;
-  aspect-ratio: 3 / 4;
-  position: relative;
-  border-radius: 18px;
-  transform-style: preserve-3d;
-  -webkit-transform-style: preserve-3d;
-  transition: transform .55s cubic-bezier(.2,.8,.2,1);
-  cursor: pointer;
-  box-shadow: 0 14px 45px rgba(0,0,0,.35);
-  border: 1px solid rgba(255,255,255,.12);
-  background: rgba(255,255,255,.04);
-  will-change: transform;
-  /* ВАЖНО: убираем overflow отсюда */
-  overflow: visible;
-}
+  .flip-card{
+    width: 100%;
+    aspect-ratio: 3 / 4;
+    position: relative;
+    border-radius: 18px;
+    transform-style: preserve-3d;
+    -webkit-transform-style: preserve-3d;
+    transition: transform .55s cubic-bezier(.2,.8,.2,1);
+    cursor: pointer;
+    box-shadow: 0 14px 45px rgba(0,0,0,.35);
+    border: 1px solid rgba(255,255,255,.12);
+    background: rgba(255,255,255,.04);
+    will-change: transform;
+    overflow: visible;
+  }
 
-.flip-card.is-flipped{
-  transform: rotateY(180deg);
-}
+  .flip-card.is-flipped{
+    transform: rotateY(180deg);
+  }
 
-.flip-face{
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  .flip-face{
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
 
-  /* ВАЖНО: radius/overflow сюда */
-  border-radius: 18px;
-  overflow: hidden;
+    border-radius: 18px;
+    overflow: hidden;
 
-  /* ВАЖНО: чуть "выталкиваем" слой вперёд, чтобы браузер не путал плоскости */
-  transform: translateZ(1px);
-}
+    transform: translateZ(1px);
+  }
 
-.flip-front{
-  transform: rotateY(0deg) translateZ(1px);
-}
+  .flip-front{ transform: rotateY(0deg) translateZ(1px); }
+  .flip-back{  transform: rotateY(180deg) translateZ(1px); }
 
-.flip-back{
-  transform: rotateY(180deg) translateZ(1px);
-}
-
-.flip-face img{
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-  pointer-events: none;
-  user-select: none;
-  -webkit-user-drag: none;
-
-  /* на всякий случай дублируем backface на img */
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
-}
-
+  .flip-face img{
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    pointer-events: none;
+    user-select: none;
+    -webkit-user-drag: none;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+  }
 
   .empty{
     color:var(--muted);
@@ -201,7 +188,7 @@
     {% if drawn_cards %}
       {% for card in drawn_cards %}
         <div class="flip-wrap">
-          <div class="flip-card" data-flip>
+          <div class="flip-card" data-flip data-card-id="{{ card.id }}">
             <div class="flip-face flip-front">
               {% if session.deck.back_full %}
                 <img src="{{ session.deck.back_full.url }}" alt="back">
@@ -228,7 +215,7 @@
   </div>
 
   <div class="hint" style="margin-top: 14px;">
-    Tip: click a card to flip it. (Flip is local for now; we can sync it later as an event.)
+    Tip: click a card to flip it. (Flip is synced via WS now.)
     <br>
     Debug: add <code>?debug=1</code> to the URL to see back/front URLs under each card.
   </div>
@@ -257,6 +244,63 @@
     wsStatus.style.color = ok ? "rgba(255,255,255,.82)" : "rgba(255,255,255,.62)";
   }
 
+  function esc(s) {
+    return String(s || "")
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;");
+  }
+
+  function sendJson(payload) {
+    if (!ws || ws.readyState !== WebSocket.OPEN) return;
+    ws.send(JSON.stringify(payload));
+  }
+
+  function sendAction(action) {
+    sendJson({ action });
+  }
+
+  function setCardFlipped(cardId, flipped) {
+    const selector = `.flip-card[data-card-id="${CSS.escape(String(cardId))}"]`;
+    const el = grid.querySelector(selector);
+    if (!el) return;
+    el.classList.toggle("is-flipped", !!flipped);
+  }
+
+  function renderCards(cards, flips = {}) {
+    if (!cards.length) {
+      grid.innerHTML = `
+        <div class="panel empty" style="grid-column: 1 / -1;">
+          No cards yet. Click “Draw 1” or “Draw 6”.
+        </div>
+      `;
+      return;
+    }
+
+    grid.innerHTML = cards.map((c) => {
+      const flipped = !!flips[String(c.id)];
+      return `
+        <div class="flip-wrap">
+          <div class="flip-card ${flipped ? "is-flipped" : ""}"
+               data-flip
+               data-card-id="${esc(c.id)}"
+               data-back="${esc(c.back_url)}"
+               data-front="${esc(c.front_url)}">
+            <div class="flip-face flip-front">
+              ${c.back_url ? `<img src="${esc(c.back_url)}" alt="back">` : `<div class="empty">No back image</div>`}
+            </div>
+            <div class="flip-face flip-back">
+              ${c.front_url ? `<img src="${esc(c.front_url)}" alt="card">` : `<div class="empty">No card image</div>`}
+            </div>
+          </div>
+          ${debug ? `
+            <div class="debug">back: ${esc(c.back_url)}<br>front: ${esc(c.front_url)}</div>
+          ` : ``}
+        </div>
+      `;
+    }).join("");
+  }
+
   function connect() {
     if (reconnectTimer) clearTimeout(reconnectTimer);
     setWsStatus("WS: connecting...", false);
@@ -274,54 +318,37 @@
 
     ws.onmessage = (event) => {
       const data = JSON.parse(event.data);
+
       if (data.type === "state") {
-        renderCards(data.cards || []);
+        renderCards(data.cards || [], data.flips || {});
+        return;
+      }
+
+      if (data.type === "flip") {
+        setCardFlipped(data.card_id, data.flipped);
+        return;
       }
     };
   }
 
-  function send(action) {
-    if (!ws || ws.readyState !== WebSocket.OPEN) return;
-    ws.send(JSON.stringify({ action }));
-  }
+  // --- actions ---
+  btnDraw1?.addEventListener("click", () => sendAction("draw_one"));
+  btnDraw6?.addEventListener("click", () => sendAction("draw_six"));
+  btnReset?.addEventListener("click", () => sendAction("reset"));
 
-  function esc(s) {
-    return String(s || "")
-      .replaceAll("&", "&amp;")
-      .replaceAll("<", "&lt;")
-      .replaceAll(">", "&gt;");
-  }
+  // --- flip click (SYNC) ---
+  document.addEventListener("click", (e) => {
+    const el = e.target.closest(".flip-card[data-card-id]");
+    if (!el) return;
 
-  function renderCards(cards) {
-    if (!cards.length) {
-      grid.innerHTML = `
-        <div class="panel empty" style="grid-column: 1 / -1;">
-          No cards yet. Click “Draw 1” or “Draw 6”.
-        </div>
-      `;
-      return;
-    }
+    // toggling locally for instant feedback
+    const cardId = el.dataset.cardId;
+    const flipped = !el.classList.contains("is-flipped");
+    el.classList.toggle("is-flipped", flipped);
 
-    grid.innerHTML = cards.map((c) => `
-      <div class="flip-wrap">
-        <div class="flip-card" data-flip data-card-id="${esc(c.id)}" data-back="${esc(c.back_url)}" data-front="${esc(c.front_url)}">
-          <div class="flip-face flip-front">
-            ${c.back_url ? `<img src="${esc(c.back_url)}" alt="back">` : `<div class="empty">No back image</div>`}
-          </div>
-          <div class="flip-face flip-back">
-            ${c.front_url ? `<img src="${esc(c.front_url)}" alt="card">` : `<div class="empty">No card image</div>`}
-          </div>
-        </div>
-        ${debug ? `
-          <div class="debug">back: ${esc(c.back_url)}<br>front: ${esc(c.front_url)}</div>
-        ` : ``}
-      </div>
-    `).join("");
-  }
-
-  btnDraw1?.addEventListener("click", () => send("draw_one"));
-  btnDraw6?.addEventListener("click", () => send("draw_six"));
-  btnReset?.addEventListener("click", () => send("reset"));
+    // send to server
+    sendJson({ action: "flip", card_id: cardId, flipped });
+  });
 
   connect();
 })();
