@@ -84,6 +84,10 @@ class SessionConsumer(AsyncWebsocketConsumer):
         if action == "draw_one":
             await self.draw_and_broadcast(count=1)
             return
+        
+        if action == "draw_three":
+            await self.draw_and_broadcast(count=3)
+            return
 
         if action == "draw_six":
             await self.draw_and_broadcast(count=6)

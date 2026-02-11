@@ -32,6 +32,7 @@
 
   <div class="controls">
     <button class="btn" id="btnDraw1" type="button">Draw 1</button>
+    <button class="btn" id="btnDraw3" type="button">Draw 3</button>
     <button class="btn" id="btnDraw6" type="button">Draw 6</button>
     <button class="btn btn-secondary" id="btnReset" type="button">Reset</button>
   </div>
@@ -41,7 +42,8 @@
       {# серверный рендер оставляем как “первую картинку”, но дальше всё управляется JS #}
       {% for card in drawn_cards %}
         <div class="flip-wrap">
-          <div class="flip-card" data-flip>
+           <button class="zoom-open" type="button" data-zoom title="Preview">🔍</button>
+        <div class="flip-card" data-flip>
             <div class="flip-face flip-front">
               {% if session.deck.back_full %}
                 <img src="{{ session.deck.back_full.url }}" alt="back">
@@ -58,7 +60,7 @@
               {% endif %}
             </div>
 
-            <button class="zoom-btn" type="button" data-zoom title="Zoom">+</button>
+            <!-- <button class="zoom-btn" type="button" data-zoom title="Zoom">+</button> -->
           </div>
         </div>
       {% endfor %}
@@ -75,7 +77,7 @@
     Debug: add <code>?debug=1</code> to the URL to see back/front URLs under each card.
   </div>
 
-  <!-- Zoom modal -->
+  <!-- Zoom modal
   <div class="modal" id="zoomModal" aria-hidden="true">
     <div class="modal-card" role="dialog" aria-modal="true" aria-label="Card preview">
       <div class="modal-toolbar">
@@ -90,14 +92,35 @@
         <img id="zoomImg" alt="zoomed card">
       </div>
     </div>
+  </div> -->
+    <!-- Zoom modal -->
+  <div class="zoom-modal" id="zoomModal" aria-hidden="true">
+    <div class="zoom-backdrop" data-zoom-close></div>
+
+    <div class="zoom-card" role="dialog" aria-modal="true">
+      <div class="zoom-toolbar">
+        <div class="zoom-title">Preview</div>
+
+        <div class="zoom-actions">
+          <button class="zoom-btn" type="button" id="zoomOutBtn" title="Zoom out">−</button>
+          <button class="zoom-btn" type="button" id="zoomInBtn" title="Zoom in">+</button>
+          <button class="zoom-btn" type="button" id="zoomCloseBtn" title="Close">✕</button>
+        </div>
+      </div>
+
+      <div class="zoom-body">
+        <img id="zoomImg" alt="zoomed card">
+      </div>
+    </div>
   </div>
+
 </div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
   window.__SESSION_ID__ = "{{ session.id }}";
-  window.__DEBUG__ = {% if request.GET.debug == "1" %}true{% else %}false{% endif %};
+  window.__DEBUG__ = "{{ request.GET.debug|default:'0' }}" === "1";
 </script>
 <script defer src="{% static 'session/js/room.js' %}"></script>
 {% endblock %}
