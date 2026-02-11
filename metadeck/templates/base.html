@@ -16,15 +16,34 @@
       --r:18px;
     }
 
-    *{
-      box-sizing: border-box;
-    }
+    *{ box-sizing: border-box; }
 
     body{
       margin: 0;
       font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-      background: radial-gradient(1200px 600px at 20% -10%, #141826 0%, #0b0c10 60%);
+
+      /* ✅ ПЛАВНЫЙ фон без “шва/полоски”
+         Идея: не обрывать radial на 90%, а мягко “свести” к прозрачности к 100%.
+         Добавлены промежуточные стопы (88% и 100%). */
+      background:
+        radial-gradient(
+          1400px 800px at 20% -15%,
+          rgb(0 0 0) 0%,
+          rgb(38 93 41 / 90%) 40%,
+          rgb(5 64 10 / 70%) 60%,
+          rgb(107 25 92 / 30%) 75%,
+
+          /* 👇 буфер перед прозрачностью — убирает резкую границу */
+          rgb(0 0 0 / 18%) 88%,
+          rgb(0 0 0 / 0%) 100%
+        ),
+        linear-gradient(180deg, #000 0%, #000 100%);
+
+      background-repeat: no-repeat;
+      background-attachment: fixed;
+
       color: var(--text);
+      min-height: 100vh;
     }
 
     .container{
@@ -39,13 +58,9 @@
       letter-spacing: -0.02em;
     }
 
-    p{
-      margin: 6px 0 0;
-    }
+    p{ margin: 6px 0 0; }
 
-    .muted{
-      color: var(--muted);
-    }
+    .muted{ color: var(--muted); }
 
     /* =========================
        Cards (shared, like room)
@@ -66,7 +81,7 @@
 
     .flip-card{
       width: 100%;
-      max-width: 190px;              /* контролируем размер на главной */
+      max-width: 190px; /* контролируем размер на главной */
       aspect-ratio: 3 / 4;
       margin: 0 auto;
       position: relative;
@@ -104,9 +119,7 @@
        Small helpers
        ========================= */
 
-    a{
-      color: inherit;
-    }
+    a{ color: inherit; }
 
     a.card-link{
       text-decoration: none;
@@ -149,13 +162,8 @@
       text-decoration: none;
     }
 
-    .btn:hover{
-      background: rgba(255,255,255,.10);
-    }
-
-    .btn:active{
-      transform: translateY(1px);
-    }
+    .btn:hover{ background: rgba(255,255,255,.10); }
+    .btn:active{ transform: translateY(1px); }
   </style>
 
   {% block extra_css %}{% endblock %}
