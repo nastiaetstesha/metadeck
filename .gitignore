@@ -146,3 +146,6 @@ cython_debug/
 .idea/
 media
 dump.json
+.env
+.docker.env
+*.env
