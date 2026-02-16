@@ -1,75 +1,56 @@
-version: "3.9"
-
 services:
   db:
     image: postgres:16
-    env_file:
-      - .docker.env
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-metadeck}
+      POSTGRES_USER: ${POSTGRES_USER:-metadeck}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-metadeck}
     volumes:
       - pgdata:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
-      interval: 5s
-      timeout: 5s
-      retries: 15
     restart: unless-stopped
 
   redis:
     image: redis:7
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 3s
-      retries: 15
     restart: unless-stopped
 
   web:
-    build:
-      context: .
+    build: .
     env_file:
-      - .docker.env
+      - .env
     depends_on:
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    expose:
-      - "8000"
-
+      - db
+      - redis
+    volumes:
+      - staticfiles:/app/staticfiles
+      - mediafiles:/app/mediafiles
     command: >
       sh -c "
       python manage.py migrate &&
       python manage.py collectstatic --noinput &&
       daphne -b 0.0.0.0 -p 8000 metadeck.asgi:application
       "
-    volumes:
-      - staticfiles:/app/staticfiles
-      - mediafiles:/app/media
     restart: unless-stopped
 
   nginx:
-    image: nginx:1.27
-    depends_on:
-      - web
+    image: nginx:1.27-alpine
     ports:
       - "80:80"
       - "443:443"
+    depends_on:
+      - web
     volumes:
       - ./nginx/metadeck.conf:/etc/nginx/conf.d/default.conf:ro
       - staticfiles:/staticfiles:ro
       - mediafiles:/mediafiles:ro
-      # webroot для certbot
-      - certbot_www:/var/www/certbot
-      # сертификаты
-      - certbot_etc:/etc/letsencrypt
+      - certbot_www:/var/www/certbot:ro
+      - letsencrypt:/etc/letsencrypt:ro
     restart: unless-stopped
 
   certbot:
     image: certbot/certbot:latest
     volumes:
       - certbot_www:/var/www/certbot
-      - certbot_etc:/etc/letsencrypt
-    entrypoint: sh -c "trap exit TERM; while :; do sleep 12h & wait $${!}; done"
+      - letsencrypt:/etc/letsencrypt
     restart: unless-stopped
 
 volumes:
@@ -77,4 +58,4 @@ volumes:
   staticfiles:
   mediafiles:
   certbot_www:
-  certbot_etc:
+  letsencrypt:
